@@ -3,13 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Terminal } from "lucide-react";
+import { scanRepository } from "@/utils/githubScanner";
 
 const Landing = () => {
   const [repoUrl, setRepoUrl] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleGenerate = () => {
-    navigate("/audit/novapay");
+  const handleAudit = async () => {
+    if (!repoUrl) return;
+    setLoading(true);
+    try {
+      const data = await scanRepository(repoUrl);
+      // Navigate to audit dashboard with the scan results
+      navigate("/audit/result", { state: { auditResult: data } });
+    } catch (error) {
+      alert("Error scanning repo. Make sure the URL is correct and public!");
+      setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !loading) {
+      handleAudit();
+    }
   };
 
   return (
@@ -40,15 +57,17 @@ const Landing = () => {
           <Input
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
+            onKeyPress={handleKeyPress}
             placeholder="https://github.com/org/repo"
             className="h-12 flex-1 border-border bg-card font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
           />
           <Button
-            onClick={handleGenerate}
-            className="h-12 gap-2 bg-primary px-6 font-mono text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            onClick={handleAudit}
+            disabled={loading}
+            className="h-12 gap-2 bg-primary px-6 font-mono text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            Generate Audit
-            <ArrowRight className="h-4 w-4" />
+            {loading ? "Scanning..." : "Generate Audit"}
+            {!loading && <ArrowRight className="h-4 w-4" />}
           </Button>
         </div>
 
